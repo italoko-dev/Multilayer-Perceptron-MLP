@@ -1,12 +1,11 @@
 import numpy as np
-from numpy.core.numeric import isclose
+import matplotlib.pyplot
 
 class Mlp:
   def __init__(self):
       self.parameters = {}
       self.eta = 1
 
-  #Inicializa os pesos (valores aleatórios)
   def initialize_parameters(self):
     parameters = {
       "W1": np.random.rand(2,2),
@@ -16,8 +15,7 @@ class Mlp:
 
   def sigmoid(self,x):
     return 1/(1 + np.exp(-x))
-
-  #Derivate
+  
   def de_sigmoid(self,x):
     f = self.sigmoid(x)
     return f * (1-f)
@@ -48,85 +46,101 @@ class Mlp:
     return gradient_errors
 
   def setting_weights(self,errors,i_results):
-    self.parameters["W2"] = self.parameters["W2"][0,:] + self.eta * errors["gradient_s1"] * i_results["iS1"]
-    self.parameters["W2"] = self.parameters["W2"][1,:] + self.eta * errors["gradient_s2"] * i_results["iS2"]
+    self.parameters["W2"][0,:] = self.parameters["W2"][0,:] + self.eta * errors["gradient_s1"] * i_results["iS1"]
+    self.parameters["W2"][1,:] = self.parameters["W2"][1,:] + self.eta * errors["gradient_s2"] * i_results["iS2"]
     
-    self.parameters["W1"] = self.parameters["W1"][0,:] + self.eta * errors["gradient_c"] * i_results["iC"]
-    self.parameters["W1"] = self.parameters["W1"][1,:] + self.eta * errors["gradient_d"] * i_results["iD"]
+    self.parameters["W1"][0,:] = self.parameters["W1"][0,:] + self.eta * errors["gradient_c"] * i_results["iC"]
+    self.parameters["W1"][1,:] = self.parameters["W1"][1,:] + self.eta * errors["gradient_d"] * i_results["iD"]
 
-  def calc_error_network(s_errors):
+  def calc_error_network(self,s_errors):
     return 0.5 * (np.sum(s_errors))**2
 
+  def backpropagation(self,i_result,y,expected):
+    errors = self.calc_error(i_result,y,expected)
+    s_errors = np.array([errors["gradient_s1"], errors["gradient_s2"]])
+    self.setting_weights(errors,i_result)
+    return s_errors
 
-  def backpropagation():
-    ##Implementar
+  def train(self,input,expected,max_epoch,limiar):
+    h_erros = []
+    self.initialize_parameters()
+    for epoch in range(max_epoch):
+      for i in input:
+        x = i[:len(i[:])-1]
+        y = i[-1]
+        i_result = self.forward(x)
+        s_errors = self.backpropagation(i_result,y,expected)
+        error_network =  self.calc_error_network(s_errors)
+        h_erros.append(error_network)
+        if error_network > limiar:
+          return h_erros
+    return h_erros
+  
+  def print_graph(self,errors_network):
+    matplotlib.pyplot.ylim(0, max(errors_network))
+    matplotlib.pyplot.xlim(0, len(errors_network))
 
-"""
-pesos = np.array([
-        #w1
-        [0.5, 1.0],  # [(a,c) , (a,d)]
-        [-0.7, 1.2] # [(b,c) , (b,d)]  
-        ])
-"""
+    matplotlib.pyplot.title('Aprendizado da rede')
+    matplotlib.pyplot.xlabel('Iteração')
+    matplotlib.pyplot.ylabel('Erro da rede')
 
-#input = np.array([1,0])
-#print(pesos[:,1])
+    matplotlib.pyplot.plot(list(range(len(errors_network))) , errors_network)
+    matplotlib.pyplot.show()
 
+  def prediction(self,input):
+    result = self.forward(input)
+    map = {"iS1":"classe 0", "iS2":"classe 1"} 
+    if result["iS1"] > result["iS2"]:
+      print(f'Entrada:{input} Pertente à: {map["iS1"]}')
+    else:
+      print(f'Entrada:{input} Pertente à: {map["iS2"]}')  
 
-#
+#-----------------------------------------------
+#Inputs for training 
+'''
+#AND
+input_train = np.array(
+    [
+        [0,0,0],
+        [0,1,0],
+        [1,0,0],
+        [1,1,1]          
+    ])
+
+#OR
+input_train = np.array(
+    [
+        [0,0,0],
+        [0,1,1],
+        [1,0,1],
+        [1,1,1]          
+    ])
+
+'''
+#XOR
+input_train = np.array(
+[
+    [0,0,0],
+    [0,1,1],
+    [1,0,1],
+    [1,1,0]          
+])
+'''
+#XNOR
+input_train = np.array(
+[
+    [0,0,1],
+    [0,1,0],
+    [1,0,0],
+    [1,1,1]          
+])
+'''
 
 mlp = Mlp()
-params = mlp.initialize_parameters()
-#print(params["W1"])
-#print("----------------------")
-#print(params["W1"][0,:])
-#print(params["W1"][1,:])
+expected = np.array([[1,0],[0,1]])
+mlp.print_graph(mlp.train(input_train,expected,max_epoch=25,limiar=1))
 
-#print(len(params["W1"][1]))
-
-expected = np.array(
-  [
-    [1,0],
-    [0,1]
-  ])
-print(expected[1,1])
-
-"""
-netC = np.sum(np.multiply(input,params["W1"][0,:]))
-iC = mlp.sigmoid(netC)
-netD = np.sum(np.multiply(input,params["W1"][1,:]))
-iD = mlp.sigmoid(netD)
-
-netS1 = np.sum(np.multiply(netC,params["W2"][0,:]))
-iS1 = mlp.sigmoid(netS1)
-netS2 = np.sum(np.multiply(netD,params["W2"][0,:]))
-iS2 = mlp.sigmoid(netS2)
-
-print (f"NetC: {netC}")
-print (f"NetD: {netD}")
-print (f"NetS1: {netS1}")
-print (f"NetS2: {netS2}")
-
-print (f"iC: {iC}")
-print (f"iD: {iD}")
-print (f"iS1: {iS1}")
-print (f"iS2: {iS2}")
-
-"""
-#test = np.sum(np.multiply(entrada,pesos[:1])) 
-
-#print(entrada) 
-#print(oculta)
-#print(netC)
-#print(test)
-
-#1 - Aplica as entradas X1, X2, ..., Xn 
-#2 - Calcula os nets da camada oculta
-#3 – Aplica função de transferência na camada de saída
-#4 – Calcula os nets da camada oculta
-#5 - Calcula as saídas Ok da camada de saída
-#6 - Calcula os erros da camada de saída
-#7 - Calculam os erros da camada oculta
-#8 - Atualiza os pesos da camada de saída
-#9 - Atualiza os pesos da camada oculta
-#10 - Calcula o erro da rede fazendo
+#Input for prediction 
+input_prediction = [1,1]
+mlp.prediction(input_prediction)
+input("Aperte qlq tecla para sair..")
